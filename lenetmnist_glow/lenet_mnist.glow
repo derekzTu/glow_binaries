@@ -1,0 +1,43 @@
+function /home/ours/glow_Debug/examples/bundles/lenet_mnist/lenet_mnist
+declare {
+  %conv1_b = WeightVar float<20> const // size: 80 // Users: @in 2
+  %conv2_b = WeightVar float<50> const // size: 200 // Users: @in 7
+  %fc3_b = WeightVar float<500> const // size: 2000 // Users: @in 16
+  %pred_b = WeightVar float<10> const // size: 40 // Users: @in 21
+  %conv1_w1 = WeightVar float<20 x 5 x 5 x 1> const // size: 2000 // Users: @in 2
+  %conv2_w1 = WeightVar float<50 x 5 x 5 x 20> const // size: 100000 // Users: @in 7
+  %pred_w1 = WeightVar float<500 x 10> const // size: 20000 // Users: @in 19
+  %selected = WeightVar index64<1 x 1> const // size: 8
+  %fc3_w11 = WeightVar float<800 x 500> const // size: 1600000 // Users: @in 14
+  %data = WeightVar float<1 x 1 x 28 x 28> mutable // size: 3136 // Users: @in 0
+  %save_softmax = WeightVar float<1 x 10> mutable // size: 40 // Users: @out 22
+
+  ; size = 1727504 bytes
+}
+
+code {
+  0 %tensorview_reshape = tensorview @in %data { Ty: float<1 x 28 x 28 x 1>, Offsets: [0, 0, 0, 0]} // Users: @in 2
+  1 %conv11_res = allocactivation  { Ty: float<1 x 24 x 24 x 20>} // size: 46080 // Users: @in 4, @out 5, @out 2
+  2 %conv11 = convolution @out %conv11_res, @in %tensorview_reshape, @in %conv1_w1, @in %conv1_b { Kernels: [5, 5], Strides: [1, 1], Pads: [0, 0, 0, 0], Group: 1}
+  3 %pool11_res = allocactivation  { Ty: float<1 x 12 x 12 x 20>} // size: 11520 // Users: @out 4, @out 8, @in 7
+  4 %pool111 = maxpool @out %pool11_res, @in %conv11_res { Kernels: [2, 2], Strides: [2, 2], Pads: [0, 0, 0, 0]}
+  5 %dealloc1 = deallocactivation @out %conv11_res // size: 46080
+  6 %conv21_res = allocactivation  { Ty: float<1 x 8 x 8 x 50>} // size: 12800 // Users: @in 10, @out 11, @out 7
+  7 %conv21 = convolution @out %conv21_res, @in %pool11_res, @in %conv2_w1, @in %conv2_b { Kernels: [5, 5], Strides: [1, 1], Pads: [0, 0, 0, 0], Group: 1}
+  8 %dealloc3 = deallocactivation @out %pool11_res // size: 11520
+  9 %pool21_res = allocactivation  { Ty: float<1 x 4 x 4 x 50>} // size: 3200 // Users: @in 12, @out 10, @out 15
+  10 %pool211 = maxpool @out %pool21_res, @in %conv21_res { Kernels: [2, 2], Strides: [2, 2], Pads: [0, 0, 0, 0]}
+  11 %dealloc4 = deallocactivation @out %conv21_res // size: 12800
+  12 %pool21_res2 = tensorview @in %pool21_res { Ty: float<1 x 800>, Offsets: [0, 0, 0, 0]} // Users: @in 14
+  13 %fc_add_bias1_res = allocactivation  { Ty: float<1 x 500>} // size: 2000 // Users: @in 16, @out 14, @in 19, @out 17, @out 20, @in 17, @out 16
+  14 %fc_dot1 = matmul @out %fc_add_bias1_res, @in %pool21_res2, @in %fc3_w11
+  15 %dealloc6 = deallocactivation @out %pool21_res // size: 3200
+  16 %fc_add_bias1 = batchedadd @out %fc_add_bias1_res, @in %fc_add_bias1_res, @in %fc3_b
+  17 %relu11 = cpumaxsplat @out %fc_add_bias1_res, @in %fc_add_bias1_res { SplatValue: 0.000000e+00}
+  18 %fc_dot_res = allocactivation  { Ty: float<1 x 10>} // size: 40 // Users: @in 22, @out 21, @out 23, @in 21, @out 19
+  19 %fc_dot = matmul @out %fc_dot_res, @in %fc_add_bias1_res, @in %pred_w1
+  20 %dealloc9 = deallocactivation @out %fc_add_bias1_res // size: 2000
+  21 %fc_add_bias = batchedadd @out %fc_dot_res, @in %fc_dot_res, @in %pred_b
+  22 %softmax = softmax @out %save_softmax, @in %fc_dot_res
+  23 %dealloc11 = deallocactivation @out %fc_dot_res // size: 40
+}
