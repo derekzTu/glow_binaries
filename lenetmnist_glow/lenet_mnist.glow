@@ -1,4 +1,4 @@
-function /home/ours/glow_Debug/examples/bundles/lenet_mnist/lenet_mnist
+function /home/lenet_mnist/
 declare {
   %conv1_b = WeightVar float<20> const // size: 80 // Users: @in 2
   %conv2_b = WeightVar float<50> const // size: 200 // Users: @in 7
